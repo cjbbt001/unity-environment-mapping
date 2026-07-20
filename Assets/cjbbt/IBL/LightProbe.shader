@@ -1,8 +1,8 @@
-Shader "cjbbt/IBL"
+Shader "cjbbt/LightProbe"
 {
     Properties
     {
-        _CubeMap("Cube Map",Cube) = "white"{}
+       
         _NormalMap("Normal Map",2D) = "bump"{}
         _AOMap("AO Map",2D) = "white"{}
 
@@ -12,11 +12,6 @@ Shader "cjbbt/IBL"
 		_Rotate("Rotate",Range(0,360)) = 0
         _AOAdjust("AO Adjust",Range(0,1)) = 1
 
-		_RoughnessMap("Roughness Map",2D) = "black"{}
-		_RoughnessContrast("Roughness Contrast",Range(0.01,10)) = 1
-		_RoughnessBrightness("Roughness Brightness",Float) = 1
-		_RoughnessMin("Rough Min",Range(0,1)) = 0
-		_RoughnessMax("Rough Max",Range(0,1)) = 1
     }
     SubShader
     {
@@ -25,11 +20,12 @@ Shader "cjbbt/IBL"
 
         Pass
         {
+            Tags{"LightMode"="ForwardBase"}
             CGPROGRAM
             #pragma vertex vert
             #pragma fragment frag
-           
-
+            #pragma multi_compile_fwdbase
+            #include "AutoLight.cginc"
             #include "UnityCG.cginc"
 
             struct appdata
@@ -50,9 +46,7 @@ Shader "cjbbt/IBL"
 				float3 binormal_world : TEXCOORD4;
             };
 
-            samplerCUBE _CubeMap;
-            float4 _CubeMap_HDR;
-
+            
             sampler2D _NormalMap;
 			float4 _NormalMap_ST;
             float _NormalIntensity;
@@ -62,13 +56,6 @@ Shader "cjbbt/IBL"
             sampler2D _AOMap;
             float _AOAdjust;
 			float _Rotate;
-
-            float _Roughness;
-			sampler2D _RoughnessMap;
-			float _RoughnessContrast;
-			float _RoughnessBrightness;
-			float _RoughnessMin;
-			float _RoughnessMax;
 
             float3 Rotate(float degree , float3 target)
             {
@@ -105,21 +92,8 @@ Shader "cjbbt/IBL"
 
                 half ao = tex2D(_AOMap,i.uv).r;
                 ao = lerp(1.0,ao, _AOAdjust);
-                half3 view_dir = normalize(_WorldSpaceCameraPos - i.pos_world);
-                half3 reflect_dir = reflect(-view_dir, normal_dir);
-
-                reflect_dir = Rotate(_Rotate,reflect_dir);
-
-                //Roughness
-                float roughness = tex2D(_RoughnessMap, i.uv);
-				roughness = saturate(pow(roughness, _RoughnessContrast) * _RoughnessBrightness);
-				roughness = lerp(_RoughnessMin, _RoughnessMax, roughness);
-				roughness = roughness * (1.7 - 0.7 * roughness);
-				float mip_level = roughness * 6.0;
-
-                half4 color_cubemap = texCUBElod(_CubeMap,float4(reflect_dir,mip_level));
-                half3 env_color = DecodeHDR(color_cubemap, _CubeMap_HDR);
-
+               
+                half3 env_color = ShadeSH9(float4(normal_dir,1.0));
                 half3 final_color = env_color * ao * _Tint.rgb * _Expose;
 
                 return float4(final_color,1);

@@ -7,8 +7,8 @@ Material:
   m_CorrespondingSourceObject: {fileID: 0}
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
-  m_Name: IBL
-  m_Shader: {fileID: 4800000, guid: 13764305453edfc4a9b576a467eec3b3, type: 3}
+  m_Name: SH
+  m_Shader: {fileID: 4800000, guid: dc2a0a133190306439fca85e1b52fbb4, type: 3}
   m_Parent: {fileID: 0}
   m_ModifiedSerializedProperties: 0
   m_ValidKeywords: []
@@ -28,10 +28,6 @@ Material:
         m_Scale: {x: 1, y: 1}
         m_Offset: {x: 0, y: 0}
     - _CubeMap:
-        m_Texture: {fileID: 8900000, guid: 80e760da091e2ce4c9fdb5d9a865a57d, type: 3}
-        m_Scale: {x: 1, y: 1}
-        m_Offset: {x: 0, y: 0}
-    - _MainTex:
         m_Texture: {fileID: 0}
         m_Scale: {x: 1, y: 1}
         m_Offset: {x: 0, y: 0}
@@ -40,20 +36,27 @@ Material:
         m_Scale: {x: 1, y: 1}
         m_Offset: {x: 0, y: 0}
     - _RoughnessMap:
-        m_Texture: {fileID: 2800000, guid: 8f80f85e5cae6a94a84feadf748ca359, type: 3}
+        m_Texture: {fileID: 0}
         m_Scale: {x: 1, y: 1}
         m_Offset: {x: 0, y: 0}
     m_Ints: []
     m_Floats:
-    - _AOAdjust: 0.719
+    - _AOAdjust: 0.886
     - _Expose: 1
     - _NormalIntensity: 1
-    - _Rotate: 339
-    - _RoughnessBrightness: 22.5
-    - _RoughnessContrast: 1.41
+    - _Rotate: 0
+    - _RoughnessBrightness: 1
+    - _RoughnessContrast: 1
     - _RoughnessMax: 1
-    - _RoughnessMin: 0.041
+    - _RoughnessMin: 0
     m_Colors:
     - _Tint: {r: 1, g: 1, b: 1, a: 1}
+    - custom_SHAb: {r: 0.01972277, g: 0.0702451, b: 0.0063025695, a: 0.53896046}
+    - custom_SHAg: {r: 0.018727047, g: -0.009563987, b: 0.010514259, a: 0.48762715}
+    - custom_SHAr: {r: 0.017295377, g: -0.0956226, b: 0.014365563, a: 0.48046836}
+    - custom_SHBb: {r: 0.018614674, g: 0.013329416, b: -0.001898245, a: 0.008221509}
+    - custom_SHBg: {r: 0.016835408, g: 0.015824927, b: -0.0027879262, a: 0.010167248}
+    - custom_SHBr: {r: 0.016239716, g: 0.016384248, b: -0.00577228, a: 0.01020044}
+    - custom_SHC: {r: 0.02272162, g: 0.020811856, b: 0.014520756, a: 1}
   m_BuildTextureStacks: []
   m_AllowLocking: 1

@@ -7,8 +7,8 @@ Material:
   m_CorrespondingSourceObject: {fileID: 0}
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
-  m_Name: IBL
-  m_Shader: {fileID: 4800000, guid: 13764305453edfc4a9b576a467eec3b3, type: 3}
+  m_Name: IBL Diffuse
+  m_Shader: {fileID: 4800000, guid: 1cdfa4aba2870ec4e974cd941e2d3810, type: 3}
   m_Parent: {fileID: 0}
   m_ModifiedSerializedProperties: 0
   m_ValidKeywords: []
@@ -28,11 +28,7 @@ Material:
         m_Scale: {x: 1, y: 1}
         m_Offset: {x: 0, y: 0}
     - _CubeMap:
-        m_Texture: {fileID: 8900000, guid: 80e760da091e2ce4c9fdb5d9a865a57d, type: 3}
-        m_Scale: {x: 1, y: 1}
-        m_Offset: {x: 0, y: 0}
-    - _MainTex:
-        m_Texture: {fileID: 0}
+        m_Texture: {fileID: 8900000, guid: c80e53fd254bc7042bc94d2336ed9be7, type: 3}
         m_Scale: {x: 1, y: 1}
         m_Offset: {x: 0, y: 0}
     - _NormalMap:
@@ -45,14 +41,14 @@ Material:
         m_Offset: {x: 0, y: 0}
     m_Ints: []
     m_Floats:
-    - _AOAdjust: 0.719
+    - _AOAdjust: 0.872
     - _Expose: 1
     - _NormalIntensity: 1
-    - _Rotate: 339
-    - _RoughnessBrightness: 22.5
-    - _RoughnessContrast: 1.41
+    - _Rotate: 0
+    - _RoughnessBrightness: 1.95
+    - _RoughnessContrast: 0.64
     - _RoughnessMax: 1
-    - _RoughnessMin: 0.041
+    - _RoughnessMin: 0.351
     m_Colors:
     - _Tint: {r: 1, g: 1, b: 1, a: 1}
   m_BuildTextureStacks: []

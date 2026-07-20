@@ -1,4 +1,4 @@
-Shader "cjbbt/IBL"
+Shader "cjbbt/SH"
 {
     Properties
     {
@@ -12,11 +12,13 @@ Shader "cjbbt/IBL"
 		_Rotate("Rotate",Range(0,360)) = 0
         _AOAdjust("AO Adjust",Range(0,1)) = 1
 
-		_RoughnessMap("Roughness Map",2D) = "black"{}
-		_RoughnessContrast("Roughness Contrast",Range(0.01,10)) = 1
-		_RoughnessBrightness("Roughness Brightness",Float) = 1
-		_RoughnessMin("Rough Min",Range(0,1)) = 0
-		_RoughnessMax("Rough Max",Range(0,1)) = 1
+        custom_SHAr("Custom SHAr", Vector) = (0, 0, 0, 0)
+		custom_SHAg("Custom SHAg", Vector) = (0, 0, 0, 0)
+		custom_SHAb("Custom SHAb", Vector) = (0, 0, 0, 0)
+		custom_SHBr("Custom SHBr", Vector) = (0, 0, 0, 0)
+		custom_SHBg("Custom SHBg", Vector) = (0, 0, 0, 0)
+		custom_SHBb("Custom SHBb", Vector) = (0, 0, 0, 0)
+		custom_SHC("Custom SHC", Vector) = (0, 0, 0, 1)
     }
     SubShader
     {
@@ -63,12 +65,13 @@ Shader "cjbbt/IBL"
             float _AOAdjust;
 			float _Rotate;
 
-            float _Roughness;
-			sampler2D _RoughnessMap;
-			float _RoughnessContrast;
-			float _RoughnessBrightness;
-			float _RoughnessMin;
-			float _RoughnessMax;
+            half4 custom_SHAr;
+			half4 custom_SHAg;
+			half4 custom_SHAb;
+			half4 custom_SHBr;
+			half4 custom_SHBg;
+			half4 custom_SHBb;
+			half4 custom_SHC;
 
             float3 Rotate(float degree , float3 target)
             {
@@ -105,21 +108,29 @@ Shader "cjbbt/IBL"
 
                 half ao = tex2D(_AOMap,i.uv).r;
                 ao = lerp(1.0,ao, _AOAdjust);
-                half3 view_dir = normalize(_WorldSpaceCameraPos - i.pos_world);
-                half3 reflect_dir = reflect(-view_dir, normal_dir);
+                float4 normalForSH = float4(normal_dir, 1.0);
+				//SHEvalLinearL0L1
+				half3 x;
+				x.r = dot(custom_SHAr, normalForSH);
+				x.g = dot(custom_SHAg, normalForSH);
+				x.b = dot(custom_SHAb, normalForSH);
 
-                reflect_dir = Rotate(_Rotate,reflect_dir);
+				//SHEvalLinearL2
+				half3 x1, x2;
+				// 4 of the quadratic (L2) polynomials
+				half4 vB = normalForSH.xyzz * normalForSH.yzzx;
+				x1.r = dot(custom_SHBr, vB);
+				x1.g = dot(custom_SHBg, vB);
+				x1.b = dot(custom_SHBb, vB);
 
-                //Roughness
-                float roughness = tex2D(_RoughnessMap, i.uv);
-				roughness = saturate(pow(roughness, _RoughnessContrast) * _RoughnessBrightness);
-				roughness = lerp(_RoughnessMin, _RoughnessMax, roughness);
-				roughness = roughness * (1.7 - 0.7 * roughness);
-				float mip_level = roughness * 6.0;
+				// Final (5th) quadratic (L2) polynomial
+				half vC = normalForSH.x*normalForSH.x - normalForSH.y*normalForSH.y;
+				x2 = custom_SHC.rgb * vC;
 
-                half4 color_cubemap = texCUBElod(_CubeMap,float4(reflect_dir,mip_level));
-                half3 env_color = DecodeHDR(color_cubemap, _CubeMap_HDR);
+				float3 sh = max(float3(0.0, 0.0, 0.0), (x + x1 + x2));
+				sh = pow(sh, 1.0 / 2.2);
 
+                half3 env_color = sh;
                 half3 final_color = env_color * ao * _Tint.rgb * _Expose;
 
                 return float4(final_color,1);

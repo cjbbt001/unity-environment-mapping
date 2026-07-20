@@ -1,4 +1,4 @@
-Shader "cjbbt/IBL"
+Shader "cjbbt/IBL Diffuse"
 {
     Properties
     {
@@ -117,7 +117,10 @@ Shader "cjbbt/IBL"
 				roughness = roughness * (1.7 - 0.7 * roughness);
 				float mip_level = roughness * 6.0;
 
-                half4 color_cubemap = texCUBElod(_CubeMap,float4(reflect_dir,mip_level));
+                
+				float4 uv_ibl = float4(normal_dir, mip_level);
+
+				half4 color_cubemap = texCUBElod(_CubeMap, uv_ibl);
                 half3 env_color = DecodeHDR(color_cubemap, _CubeMap_HDR);
 
                 half3 final_color = env_color * ao * _Tint.rgb * _Expose;
