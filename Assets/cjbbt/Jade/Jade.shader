@@ -2,14 +2,29 @@ Shader "cjbbt/jade"
 {
     Properties
     {
-        _CubeMap("Cube Map",Cube) = "white"{}
-        _NormalMap("Normal Map",2D) = "bump"{}
-        _AOMap("AO Map",2D) = "white"{}
+        _DiffuseColor("Diffuse Color",Color) = (0,0.352,0.219,1)
+		_AddColor("Add Color",Color) = (0,0.352,0.219,1)
+		_Opacity("Opacity",Range(0,1)) = 0
+		_ThicknessMap("Thickness Map",2D) = "black"{}
+		
+		[Header(BasePass)]
+		_BasePassDistortion("Base Pass Distortion", Range(0,1)) = 0.2
+		_BasePassColor("BasePass Color",Color) = (1,1,1,1)
+		_BasePassPower("BasePass Power",float) = 1
+		_BasePassScale("BasePass Scale",float) = 2
+		
+		[Header(AddPass)]
+		_AddPassDistortion("Add Pass Distortion", Range(0,1)) = 0.2
+		_AddPassColor("AddPass Color",Color) = (0.56,0.647,0.509,1)
+		_AddPassPower("AddPass Power",float) = 1
+		_AddPassScale("AddPass Scale",float) = 1
 
-		_NormalIntensity("Normal Intensity",Float) = 1.0
-        _Tint("Tint",Color) = (1,1,1,1)
-		_Expose("Expose",Float) = 1.0
-		_Rotate("Rotate",Range(0,360)) = 0
+		[Header(EnvReflect)]
+		_EnvRotate("Env Rotate",Range(0,360)) = 0
+		_EnvMap ("Env Map", Cube) = "white" {}
+		_FresnelMin("Fresnel Min",Range(-2,2)) = 0
+		_FresnelMax("Fresnel Max",Range(-2,2)) = 1
+		_EnvIntensity("Env Intensity",float) = 1.0
     }
     SubShader
     {
@@ -18,90 +33,182 @@ Shader "cjbbt/jade"
 
         Pass
         {
+            Tags { "LightMode" = "ForwardBase" } 
             CGPROGRAM
             #pragma vertex vert
             #pragma fragment frag
-           
-
-            #include "UnityCG.cginc"
+            #pragma multi_compile_fwdbase
+		    #include "UnityCG.cginc"
+            #include "AutoLight.cginc"
 
             struct appdata
             {
                 float4 vertex : POSITION;
                 float2 uv : TEXCOORD0;
                 float3 normal : NORMAL;
-                float4 tangent : TANGENT;
+               
             };
 
             struct v2f
             {
                 float2 uv : TEXCOORD0;
                 float4 pos : SV_POSITION;
-                float3 normal_world : TEXCOORD1;
-				float3 pos_world : TEXCOORD2;
-				float3 tangent_world : TEXCOORD3;
-				float3 binormal_world : TEXCOORD4;
+                float4 posWorld : TEXCOORD1;
+			    float3 normalDir : TEXCOORD2;
+				
             };
 
-            samplerCUBE _CubeMap;
-            float4 _CubeMap_HDR;
+            sampler2D _ThicknessMap;
+			float4 _ThicknessMap_ST;
 
-            sampler2D _NormalMap;
-			float4 _NormalMap_ST;
-            float _NormalIntensity;
+		    float4 _DiffuseColor;
+		    float4 _AddColor;
+		    float _Opacity;
 
-            float4 _Tint;
-			float _Expose;
-            sampler2D _AOMap;
-			float _Rotate;
+		    float4 _BasePassColor;
+		    float _BasePassDistortion;
+		    float _BasePassPower;
+		    float _BasePassScale;
 
-            float3 Rotate(float degree , float3 target)
-            {
-                float rad = degree * UNITY_PI / 180;
-                float2x2 m_rotate = float2x2(cos(rad), -sin(rad),
-                                             sin(rad), cos(rad));
-                float2 rotate_dir = mul(m_rotate, target.xz);
-                target = float3(rotate_dir.x ,target.y ,rotate_dir.y);
-                return target;
-                }
+ 		    samplerCUBE _EnvMap;
+		    float4 _EnvMap_HDR;
+		    float _EnvRotate;
+		    float _EnvIntensity;
+		    float _FresnelMin;
+		    float _FresnelMax;
+
+		    float4 _LightColor0;
+
 
             v2f vert (appdata v)
             {
                 v2f o;
                 o.pos = UnityObjectToClipPos(v.vertex);
-                o.uv = TRANSFORM_TEX(v.uv, _NormalMap);
-                o.pos_world = mul(unity_ObjectToWorld, v.vertex).xyz;
-                o.normal_world = normalize(mul(float4(v.normal,0),unity_ObjectToWorld).xyz);
-                o.tangent_world = normalize(mul(unity_ObjectToWorld, float4(v.tangent.xyz, 0.0)).xyz);
-				o.binormal_world = normalize(cross(o.normal_world, o.tangent_world)) * v.tangent.w;
+                o.uv = v.uv * _ThicknessMap_ST.xy +_ThicknessMap_ST.zw;
+				//o.uv = TRANSFORM_TEX(v.uv, _ThicknessMap);
+                o.posWorld = mul(unity_ObjectToWorld, v.vertex);
+			    o.normalDir = UnityObjectToWorldNormal(v.normal);
                 return o;
             }
 
             fixed4 frag (v2f i) : SV_Target
             {
-                half3 normal_dir = normalize(i.normal_world);
-                half3 tangent_dir = normalize(i.tangent_world);
-				half3 binormal_dir = normalize(i.binormal_world);
+                //info
+			    float3 diffuse_color = _DiffuseColor;
+			    float3 normalDir = normalize(i.normalDir);
+			    float3 viewDir = normalize(_WorldSpaceCameraPos - i.posWorld.xyz);
+			    float3 lightDir = normalize(_WorldSpaceLightPos0.xyz);
 
-                half3 normaldata = UnpackNormal(tex2D(_NormalMap,i.uv));
-                normaldata.xy = normaldata.xy * _NormalIntensity;
-                normal_dir = normalize(tangent_dir * normaldata.x 
-                    + binormal_dir * normaldata.y + normal_dir * normaldata.z);
+                //diffuse+skylight
+			    float diff_term = max(0.0, dot(normalDir, lightDir));
+			    float3 diffuselight_color = diff_term * diffuse_color * _LightColor0.rgb;
 
-                half ao = tex2D(_AOMap,i.uv).r;
-                half3 view_dir = normalize(_WorldSpaceCameraPos - i.pos_world);
-                half3 reflect_dir = reflect(-view_dir, normal_dir);
+			    float sky_sphere = (dot(normalDir,float3(0,1,0)) + 1.0) * 0.5;
+			    float3 sky_light = sky_sphere * diffuse_color;
+			    float3 final_diffuse = diffuselight_color + sky_light * _Opacity + _AddColor.xyz;
 
-                reflect_dir = Rotate(_Rotate,reflect_dir);
+                //trans light
+				float3 back_dir = -normalize(lightDir + normalDir * _BasePassDistortion);
+				float VdotB = max(0.0, dot(viewDir, back_dir));
+				float backlight_term = max(0.0,pow(VdotB, _BasePassPower)) * _BasePassScale;
+				float thickness = 1.0 - tex2D(_ThicknessMap, i.uv).r;
+				float3 backlight = backlight_term * thickness *
+					_LightColor0.xyz * _BasePassColor.xyz;
 
-                half4 color_cubemap = texCUBE(_CubeMap,reflect_dir);
-                half3 env_color = DecodeHDR(color_cubemap, _CubeMap_HDR);
+				//ENV
+				float3 reflectDir = reflect(-viewDir,normalDir);
 
-                half3 final_color = env_color * ao * _Tint.rgb * _Expose;
+				half theta = _EnvRotate * UNITY_PI / 180.0f;
+				float2x2 m_rot = float2x2(cos(theta), -sin(theta), sin(theta),cos(theta));
+				float2 v_rot = mul(m_rot, reflectDir.xz);
+				reflectDir = half3(v_rot.x, reflectDir.y, v_rot.y);
 
+				float4 cubemap_color = texCUBE(_EnvMap,reflectDir);
+				half3 env_color = DecodeHDR(cubemap_color, _EnvMap_HDR);
+
+				float fresnel = 1.0 - saturate(dot(normalDir, viewDir));
+				fresnel = smoothstep(_FresnelMin, _FresnelMax, fresnel);
+
+				float3 final_env = env_color * _EnvIntensity * fresnel;
+
+				//final 
+				float3 final_color = final_diffuse + final_env + backlight;
                 return float4(final_color,1);
             }
             ENDCG
         }
+
+		Pass {	
+			Tags { "LightMode" = "ForwardAdd" } 
+			Blend One One 
+			ZWrite Off
+			CGPROGRAM
+ 
+			#pragma vertex vert  
+			#pragma fragment frag 
+			#pragma multi_compile_fwdadd
+			#include "UnityCG.cginc"
+			#include "AutoLight.cginc"
+			float4 _LightColor0; 
+ 
+			float4 _DiffuseColor;
+			sampler2D _ThicknessMap;
+			float4 _ThicknessMap_ST;
+			float _AddPassDistortion;
+			float _AddPassPower;
+			float _AddPassScale;
+			float4 _AddPassColor;
+
+ 			samplerCUBE _EnvMap;
+			float _EnvIntensity;
+			float _FresnelMin;
+			float _FresnelMax;
+ 
+			struct appdata {
+				float4 vertex : POSITION;
+				float3 normal : NORMAL;
+				float2 uv : TEXCOORD0;
+			};
+			struct v2f {
+				float4 pos : SV_POSITION;
+				float2 uv : TEXCOORD0;
+				float4 posWorld : TEXCOORD1;
+				float3 normalDir : TEXCOORD2;
+				LIGHTING_COORDS(3,4)
+			};
+			v2f vert(appdata v) 
+			{
+				v2f o;
+				o.posWorld = mul(unity_ObjectToWorld, v.vertex);
+				o.normalDir = UnityObjectToWorldNormal(v.normal);
+				o.uv = TRANSFORM_TEX(v.uv, _ThicknessMap);
+				o.pos = UnityObjectToClipPos(v.vertex);
+				TRANSFER_VERTEX_TO_FRAGMENT(o);
+				return o;
+			}
+ 
+			float4 frag(v2f i) : COLOR
+			{
+				float3 normalDir = normalize(i.normalDir); 
+				float3 viewDir = normalize(_WorldSpaceCameraPos - i.posWorld.xyz);
+				float NdotV = saturate(dot(normalDir,viewDir));
+				//light info
+				float3 lightDir = normalize(lerp(_WorldSpaceLightPos0.xyz, _WorldSpaceLightPos0.xyz - i.posWorld.xyz,_WorldSpaceLightPos0.w));
+				float attenuation = LIGHT_ATTENUATION(i);
+				//trans light
+				float3 back_dir = -normalize(lightDir + normalDir * _AddPassDistortion);
+				float VdotB = max(0.0,dot(viewDir, back_dir));
+				float backlight_term = max(0.0, pow(VdotB, _AddPassPower)) * _AddPassScale;
+				float thickness = 1.0 - tex2D(_ThicknessMap, i.uv).r;
+				float3 backlight = backlight_term * thickness *
+					_LightColor0.xyz * _AddPassColor.xyz * attenuation;
+				//combine
+				float3 final_color = backlight;
+				// final_color = sqrt(final_color);
+				return float4(final_color,1.0);
+			}
+			ENDCG
+		}
     }
+	 FallBack "Diffuse"
 }

@@ -1,4 +1,4 @@
-﻿Shader "Dragon" {
+Shader "Dragon" {
    Properties {
 		_DiffuseColor("Diffuse Color",Color) = (0,0.352,0.219,1)
 		_AddColor("Add Color",Color) = (0,0.352,0.219,1)
@@ -6,7 +6,7 @@
 		_ThicknessMap("Thickness Map",2D) = "black"{}
 		
 		[Header(BasePass)]
-		_BasePassDistortion("Bass Pass Distortion", Range(0,1)) = 0.2
+		_BasePassDistortion("Base Pass Distortion", Range(0,1)) = 0.2
 		_BasePassColor("BasePass Color",Color) = (1,1,1,1)
 		_BasePassPower("BasePass Power",float) = 1
 		_BasePassScale("BasePass Scale",float) = 2
@@ -71,7 +71,6 @@
 			v2f o;
 			o.posWorld = mul(unity_ObjectToWorld, v.vertex);
 			o.normalDir = UnityObjectToWorldNormal(v.normal);
-            o.posWorld = mul(unity_ObjectToWorld, v.vertex);
 			o.uv = v.texcoord;
 			o.pos = UnityObjectToClipPos(v.vertex);
 			return o;
